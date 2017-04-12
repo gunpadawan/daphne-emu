@@ -20,9 +20,11 @@ LIBNAME =	libvldp2.so
 
 all:		vldp2
 
+objs: ${OBJS}
+
 vldp2:		${OBJS}
 		${CC} -shared -o ${LIBNAME} ${OBJS} ${LIBS}
 		cp ${LIBNAME} ../../.
 
 clean:
-		rm ${LIBNAME} ${OBJS}
+		rm -f ${LIBNAME} ${OBJS}
