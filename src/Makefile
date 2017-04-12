@@ -41,6 +41,7 @@ SINGE_OBJS =  game/singe/lbaselib.o game/singe/ldblib.o \
 	game/singe/singeproxy.o
 
 DEFINE_STATIC_SINGE = -DSTATIC_SINGE
+LIBS += -lSDL_image -lSDL_ttf
 endif
 
 # gp2x static linking is slightly different because the decoding
