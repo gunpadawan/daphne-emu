@@ -40,6 +40,11 @@
 #include <fcntl.h>	// for non-blocking i/o
 #endif
 
+#define AIMTRAK
+#ifdef AIMTRAK
+#include "aimtrak.h"
+#endif
+
 #include <queue>	// STL queue for coin queue
 
 using namespace std;
@@ -153,6 +158,84 @@ int mouse_buttons_map[5] =
 	SWITCH_BUTTON1,  // 3 (Wheel Up)
 	SWITCH_BUTTON2   // 4 (Wheel Down)
 };
+
+
+#ifdef AIMTRAK
+struct aimtrak_context g_aimtrak;
+int g_aimtrak_found = 0;
+
+extern SDL_Surface *g_screen;
+
+static void init_aimtrak() {
+    g_aimtrak_found = aimtrak_locate(-1, &g_aimtrak);
+    printf("g_aimtrak_found %d\n", g_aimtrak_found);
+
+    FilterMouseEvents(true);
+
+}
+
+
+static int findBtn(int btn) {
+    switch(btn) {
+        case IDX_LEFT: return SWITCH_BUTTON3;   // 0 (Left Button)
+        case IDX_MIDDLE: return SWITCH_BUTTON1; // 1 (Middle Button)
+        case IDX_RIGHT: return SWITCH_BUTTON2;  // 2 (Right Button)
+        default: return -1;
+    }
+}
+
+
+static void handle_aimtrak_event() {
+    int i;
+    struct aimtrak_state oldState;
+    struct aimtrak_axis* axis_p;
+    unsigned int x, y;
+
+    if(g_aimtrak_found) {
+        oldState = g_aimtrak.state;
+        if(0 < aimtrak_poll(&g_aimtrak)) {
+            /* we have new events */
+
+            /* check if pointer moved */
+            for(i=0 ; i<MAX_AXIS ; ++i) {
+                if(g_aimtrak.state.axis[i].value != oldState.axis[i].value) {
+                    axis_p = &g_aimtrak.state.axis[IDX_X];
+                    x = (axis_p->value - axis_p->min) * g_screen->w / (axis_p->max - axis_p->min);
+
+                    axis_p = &g_aimtrak.state.axis[IDX_Y];
+                    y = (axis_p->value - axis_p->min) * g_screen->h / (axis_p->max - axis_p->min);
+
+                    g_game->OnMouseMotion(x, y, 0, 0);
+                    break;
+                }
+            }
+
+            /* check if buttons state changed */
+            for(i=0 ; i<MAX_BTN ; ++i) {
+                if(g_aimtrak.state.btns[i].pressed != oldState.btns[i].pressed) {
+                    if(g_aimtrak.state.btns[i].pressed)
+                        g_game->input_enable(findBtn(i));
+                    else
+                        g_game->input_disable(findBtn(i));
+                }
+            }
+        }
+    }
+}
+
+
+static void close_aimtrak() {
+    if(g_aimtrak_found)
+        aimtrak_close(&g_aimtrak);
+}
+
+#else
+void init_aimtrak() {}
+void close_aimtrak() {}
+void handle_aimtrak_event() {}
+#endif
+
+
 
 ////////////
 
@@ -325,6 +408,8 @@ int SDL_input_init()
 		FilterMouseEvents(true);
 	}
 
+    init_aimtrak();
+
 	return(result);
 
 }
@@ -347,6 +432,8 @@ void FilterMouseEvents(bool bFilteredOut)
 // 1 = success, 0 = failure
 int SDL_input_shutdown(void)
 {
+    close_aimtrak();
+
 	SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
 	return(1);
 }
@@ -354,7 +441,6 @@ int SDL_input_shutdown(void)
 // checks to see if there is incoming input, and acts on it
 void SDL_check_input()
 {
-
 	SDL_Event event;
 
 	while ((SDL_PollEvent (&event)) && (!get_quitflag()))
@@ -383,7 +469,11 @@ void SDL_check_input()
 			process_event(&event);
 		}
 	}
-	check_console_refresh();
+
+
+    handle_aimtrak_event();
+
+    check_console_refresh();
 
 	// added by JFA for -idleexit
 	if (get_idleexit() > 0 && elapsed_ms_time(idle_timer) > get_idleexit()) set_quitflag();
@@ -579,7 +669,13 @@ void process_event(SDL_Event *event)
 			break;
 		case SDL_MOUSEMOTION:
 			// added by ScottD
-			g_game->OnMouseMotion(event->motion.x, event->motion.y, event->motion.xrel, event->motion.yrel);
+            printf("motion %d, %d, xrem %d, %d\n", event->motion.x, event->motion.y, event->motion.xrel, event->motion.yrel);
+            {
+                int testX, testY;
+                SDL_GetMouseState(&testX, &testY);
+                printf("global motion %d, %d\n", testX, testY);
+            }
+            g_game->OnMouseMotion(event->motion.x, event->motion.y, event->motion.xrel, event->motion.yrel);
 			break;
 		case SDL_QUIT:
 			// if they are trying to close the window
