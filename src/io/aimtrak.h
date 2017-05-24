@@ -28,48 +28,53 @@
  * do so, delete this exception statement from your version.
  */
 
-#ifndef __EVENT_H
-#define __EVENT_H
+#ifndef __AIMTRAK_H__
+#define __AIMTRAK_H__
 
-
-struct event_location {
-    char file[128];
-    unsigned vendor;
-    unsigned product;
-    unsigned version;
-    unsigned bus;
-    unsigned index;
-};
-
-struct axe_context {
-    int value;
-    int value_adj;
-    int min;
-    int max;
-    int fuzz;
-    int flat;
-    int digit_low;
-    int digit_high;
-};
-
-struct btn_context {
-    int code;
-    int state;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MAX_AXIS 2
-#define MAX_BTN 10
-struct dev_context {
-    int devFd;
-    struct axe_context axes[MAX_AXIS];
-    struct btn_context btns[MAX_BTN];
-    int nbBtns;
+#define MAX_BTN 3
+
+#define IDX_X       0
+#define IDX_Y       1
+
+#define IDX_LEFT    0
+#define IDX_MIDDLE  1
+#define IDX_RIGHT   2
+
+
+struct aimtrak_axis {
+    int min;
+    int max;
+    int value;
+};
+
+struct aimtrak_button {
+    int pressed;
+};
+
+struct aimtrak_state {
+    struct aimtrak_button   btns[MAX_BTN];
+    struct aimtrak_axis     axis[MAX_AXIS];
+};
+
+struct aimtrak_context {
+    int                     fd;
+    struct aimtrak_state    state;
 };
 
 
-int event_locate(int vendor, int product, int isMouseNotJoystick, struct dev_context* dev_p);
-int event_poll(struct dev_context* dev_p);
-void event_close(struct dev_context* dev_p);
+int aimtrak_locate(int product, struct aimtrak_context* dev_p);
+int aimtrak_poll(struct aimtrak_context* dev_p);
+int aimtrak_open(const char* file, unsigned char* evtype_bitmask, unsigned evtype_size);
+void aimtrak_close(struct aimtrak_context* dev_p);
 
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* __EVENT_AIMTRAK_H__ */
