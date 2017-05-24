@@ -4,8 +4,8 @@
 # platform-specific compile flags
 # Add -DBUILD_SINGE to enable SINGE
 PFLAGS = ${DFLAGS} `sdl-config --cflags` -DUNIX -DLINUX \
-         -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -DUSE_OPENGL -DRPI -DBUILD_SINGE
+         -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -DRPI -DBUILD_SINGE
 
 
 # platform-specific lib flags
-LIBS = `sdl-config --libs` -ldl -lz -logg -lvorbis -lvorbisfile -lGLEW -lGL
+LIBS += `sdl-config --libs` -ldl -lz -logg -lvorbis -lvorbisfile
